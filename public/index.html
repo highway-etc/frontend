@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>ETC Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {
+            font-family: system-ui, Arial;
+            margin: 24px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ETC Latest Records</h1>
+    <div id="status">Loading...</div>
+    <table id="tbl">
+        <thead></thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        async function load() {
+            try {
+                const api = (location.search.match(/[?&]api=([^&]+)/) || [])[1] || "http://localhost:8080";
+                const res = await fetch(api + "/traffic/latest?limit=50");
+                const data = await res.json();
+                document.getElementById("status").textContent = `Loaded ${data.length} rows`;
+                const head = document.querySelector("#tbl thead");
+                const body = document.querySelector("#tbl tbody");
+                head.innerHTML = ""; body.innerHTML = "";
+                if (data.length) {
+                    const cols = Object.keys(data[0]);
+                    head.innerHTML = "<tr>" + cols.map(c => `<th>${c}</th>`).join("") + "</tr>";
+                    for (const row of data) {
+                        body.innerHTML += "<tr>" + cols.map(c => `<td>${row[c]}</td>`).join("") + "</tr>";
+                    }
+                }
+            } catch (e) {
+                document.getElementById("status").textContent = "Error: " + e;
+            }
+        }
+        load(); setInterval(load, 30000);
+    </script>
+</body>
+
+</html>
