@@ -26,18 +26,18 @@ const Alerts = () => {
   }, []);
 
   const columns = [
-    { title: '¸æ¾¯Ê±¼ä', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
-    { title: '³µÅÆºÅ', dataIndex: 'licensePlate' },
-    { title: 'Õ¾µãID', dataIndex: 'stationId' },
-    { title: '¸æ¾¯ÀàĞÍ', dataIndex: 'alertType', render: t => <Tag color='error'>{t}</Tag> },
+    { title: 'å‘Šè­¦æ—¶é—´', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
+    { title: 'è½¦ç‰Œå·', dataIndex: 'licensePlate' },
+    { title: 'ç«™ç‚¹ID', dataIndex: 'stationId' },
+    { title: 'å‘Šè­¦ç±»å‹', dataIndex: 'alertType', render: t => <Tag color='error'>{t}</Tag> },
   ];
 
   return (
     <div className='panel' style={{ height: '100%' }}>
-      <div className='panel-title'>½»»¥Ê½²éÑ¯ - Ì×ÅÆ¸æ¾¯¼ÇÂ¼</div>
+      <div className='panel-title'>äº¤äº’å¼æŸ¥è¯¢ - è½¦ç‰Œå‘Šè­¦è®°å½•</div>
       <Space style={{ marginBottom: 16 }}>
         <Input.Search 
-          placeholder='ËÑË÷³µÅÆ' 
+          placeholder='æŒ‰è½¦ç‰Œç­›é€‰' 
           onSearch={val => fetchData(val)} 
           enterButton 
           style={{ width: 300 }}

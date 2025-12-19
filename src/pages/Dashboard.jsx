@@ -9,6 +9,7 @@ const Dashboard = () => {
   const [overview, setOverview] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chinaReady, setChinaReady] = useState(false);
 
   // Hardcoded station coordinates for demo (Guangdong area approx)
   const stationCoords = {
@@ -20,6 +21,14 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    // 载入本地高精度中国 GeoJSON（public/geo/china.json）并注册
+    axios.get('/geo/china.json').then(res => {
+      echarts.registerMap('china', res.data);
+      setChinaReady(true);
+    }).catch(err => {
+      console.error('Failed to load china geojson', err);
+    });
+
     const fetchData = async () => {
       try {
         const [overviewRes, alertsRes] = await Promise.all([
@@ -104,31 +113,43 @@ const Dashboard = () => {
   const mapOption = {
     backgroundColor: 'transparent',
     geo: {
-      map: 'china', // Note: This requires registering the map, which we skip for now and use coordinate system
-      silent: true,
+      map: 'china',
+      roam: true,
+      zoom: 1.05,
       itemStyle: {
-        areaColor: '#1e293b',
-        borderColor: '#334155'
+        areaColor: '#111827',
+        borderColor: '#1f2937'
+      },
+      emphasis: {
+        itemStyle: {
+          areaColor: '#0ea5e9'
+        }
       }
     },
-    // Using a simple scatter plot on a cartesian system to simulate a map for now
-    // since we don't have the map JSON loaded.
-    grid: { top: 10, bottom: 10, left: 10, right: 10 },
-    xAxis: { show: false, min: 112, max: 118 }, // Longitude range for Guangdong
-    yAxis: { show: false, min: 21, max: 25 },   // Latitude range for Guangdong
-    series: [
+    series: chinaReady ? [
+      {
+        type: 'map',
+        map: 'china',
+        roam: true,
+        label: { show: false },
+        itemStyle: {
+          borderColor: '#334155',
+          borderWidth: 1,
+          areaColor: 'rgba(30,41,59,0.6)'
+        }
+      },
       {
         type: 'effectScatter',
-        coordinateSystem: 'cartesian2d',
+        coordinateSystem: 'geo',
         data: overview?.topStations?.map(s => {
           const coords = stationCoords[s.stationId] || [113.264, 23.129];
-          return [...coords, s.count];
+          return { name: `站点 ${s.stationId}`, value: [...coords, s.count] };
         }) || [],
-        symbolSize: (val) => Math.min(val[2] / 10 + 10, 30),
+        symbolSize: val => Math.min((val[2] || 0) / 20 + 10, 28),
         itemStyle: { color: '#f43f5e', shadowBlur: 10, shadowColor: '#f43f5e' },
-        label: { show: true, formatter: '{@2}', position: 'top', color: '#fff' }
+        label: { show: true, formatter: '{b}', color: '#e2e8f0' }
       }
-    ]
+    ] : []
   };
 
   const topStationOption = {

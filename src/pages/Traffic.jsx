@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Button, Space } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Table, Input, Button, Space, DatePicker, InputNumber } from 'antd';
+import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
+
+const { RangePicker } = DatePicker;
 
 const Traffic = () => {
   const [data, setData] = useState([]);
@@ -13,12 +15,16 @@ const Traffic = () => {
   const fetchData = async (pageParams = pagination, filterParams = filters) => {
     setLoading(true);
     try {
+      const params = {
+        page: pageParams.current - 1,
+        size: pageParams.pageSize,
+        licensePlate: filterParams.licensePlate,
+        stationId: filterParams.stationId,
+        start: filterParams.start ? filterParams.start.format('YYYY-MM-DD HH:mm:ss') : undefined,
+        end: filterParams.end ? filterParams.end.format('YYYY-MM-DD HH:mm:ss') : undefined,
+      };
       const res = await axios.get('/api/traffic', {
-        params: {
-          page: pageParams.current - 1,
-          size: pageParams.pageSize,
-          ...filterParams
-        }
+        params
       });
       setData(res.data.records);
       setPagination({
@@ -46,23 +52,58 @@ const Traffic = () => {
     fetchData({ ...pagination, current: 1 }, newFilters);
   };
 
+  const handleStationChange = (value) => {
+    const newFilters = { ...filters, stationId: value };
+    setFilters(newFilters);
+  };
+
+  const handleRangeChange = (dates) => {
+    const [start, end] = dates || [];
+    const newFilters = { ...filters, start, end };
+    setFilters(newFilters);
+  };
+
+  const handleApply = () => {
+    fetchData({ ...pagination, current: 1 }, filters);
+  };
+
+  const handleReset = () => {
+    const cleared = {};
+    setFilters(cleared);
+    fetchData({ ...pagination, current: 1 }, cleared);
+  };
+
   const columns = [
-    { title: 'ʱ��', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
-    { title: '���ƺ�', dataIndex: 'licensePlate' },
-    { title: 'վ��ID', dataIndex: 'stationId' },
-    { title: '�ٶ� (km/h)', dataIndex: 'speed', render: v => v || '-' },
+    { title: '时间', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
+    { title: '车牌号', dataIndex: 'licensePlate' },
+    { title: '站点ID', dataIndex: 'stationId' },
+    { title: '速度 (km/h)', dataIndex: 'speed', render: v => v || '-' },
   ];
 
   return (
     <div className='panel' style={{ height: '100%' }}>
-      <div className='panel-title'>���߷��� - ����ͨ����ϸ</div>
+      <div className='panel-title'>离线分析 - 通行数据明细</div>
       <Space style={{ marginBottom: 16 }}>
         <Input.Search
-          placeholder='�������� (��: A12)'
+          placeholder='按车牌筛选 (例: 粤A12345)'
           onSearch={handleSearch}
           enterButton
           style={{ width: 300 }}
         />
+        <InputNumber
+          placeholder='站点ID'
+          value={filters.stationId}
+          onChange={handleStationChange}
+          style={{ width: 120 }}
+        />
+        <RangePicker
+          showTime
+          value={filters.start && filters.end ? [filters.start, filters.end] : []}
+          onChange={handleRangeChange}
+          style={{ width: 360 }}
+        />
+        <Button type='primary' icon={<SearchOutlined />} onClick={handleApply}>查询</Button>
+        <Button icon={<ReloadOutlined />} onClick={handleReset}>重置</Button>
       </Space>
       <Table 
         columns={columns} 
