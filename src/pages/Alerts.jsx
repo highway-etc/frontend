@@ -1,24 +1,21 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import dayjs from "dayjs";
-import "../app.css";
+import React, { useState, useEffect } from 'react';
+import { Table, Input, Tag, Space } from 'antd';
+import axios from 'axios';
+import dayjs from 'dayjs';
 
-export default function Alerts() {
-  const [rows, setRows] = useState([]);
-  const [station, setStation] = useState("");
+const Alerts = () => {
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const fetchData = async () => {
+  const fetchData = async (plate) => {
     setLoading(true);
-    setError("");
     try {
-      const res = await axios.get("/api/alerts", {
-        params: { stationId: station || undefined },
+      const res = await axios.get('/api/alerts', {
+        params: { plate }
       });
-      setRows(res.data || []);
-    } catch (e) {
-      setError(e?.message || "Failed to load alerts");
+      setData(res.data);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -26,45 +23,35 @@ export default function Alerts() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const columns = [
+    { title: '告警时间', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
+    { title: '车牌号', dataIndex: 'licensePlate' },
+    { title: '站点ID', dataIndex: 'stationId' },
+    { title: '告警类型', dataIndex: 'alertType', render: t => <Tag color='error'>{t}</Tag> },
+  ];
+
   return (
-    <div className="layout">
-      <div className="header">Alerts</div>
-      <div className="card">
-        <div className="controls">
-          <input placeholder="Station ID" value={station} onChange={(e) => setStation(e.target.value)} />
-          <button onClick={fetchData} disabled={loading}>
-            Refresh
-          </button>
-        </div>
-        {error && <div style={{ marginBottom: 8 }}>Error: {error}</div>}
-        {loading ? (
-          <div>Loading...</div>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Station</th>
-                <th>Plate</th>
-                <th>Time</th>
-                <th>Alert Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={idx}>
-                  <td>{r.stationId}</td>
-                  <td>{r.licensePlate}</td>
-                  <td>{dayjs(r.timestamp).format("YYYY-MM-DD HH:mm:ss")}</td>
-                  <td>{r.alertType}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+    <div className='panel' style={{ height: '100%' }}>
+      <div className='panel-title'>交互式查询 - 套牌告警记录</div>
+      <Space style={{ marginBottom: 16 }}>
+        <Input.Search 
+          placeholder='搜索车牌' 
+          onSearch={val => fetchData(val)} 
+          enterButton 
+          style={{ width: 300 }}
+        />
+      </Space>
+      <Table 
+        columns={columns} 
+        dataSource={data} 
+        rowKey={(r, i) => i} 
+        loading={loading}
+        pagination={{ pageSize: 15 }}
+      />
     </div>
   );
-}
+};
+
+export default Alerts;

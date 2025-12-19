@@ -1,99 +1,80 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import dayjs from "dayjs";
-import "../app.css";
+import React, { useState, useEffect } from 'react';
+import { Table, Input, Button, Space } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
+import axios from 'axios';
+import dayjs from 'dayjs';
 
-export default function Traffic() {
-  const [rows, setRows] = useState([]);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [total, setTotal] = useState(0);
-  const [plateFilter, setPlateFilter] = useState("");
+const Traffic = () => {
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
+  const [filters, setFilters] = useState({});
 
-  const fetchPage = async (nextPage = 1) => {
+  const fetchData = async (pageParams = pagination, filterParams = filters) => {
     setLoading(true);
-    setError("");
     try {
-      const res = await axios.get("/api/traffic", {
+      const res = await axios.get('/api/traffic', {
         params: {
-          page: Math.max(nextPage - 1, 0),
-          size: pageSize,
-          licensePlate: plateFilter.trim() || undefined,
-        },
+          page: pageParams.current - 1,
+          size: pageParams.pageSize,
+          ...filterParams
+        }
       });
-      setRows(res.data?.records || []);
-      setTotal(res.data?.total || 0);
-      setPage(nextPage);
-    } catch (e) {
-      setError(e?.message || "Failed to load traffic records");
+      setData(res.data.records);
+      setPagination({
+        ...pageParams,
+        total: res.data.total
+      });
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchData();
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const handleTableChange = (newPagination) => {
+    fetchData(newPagination, filters);
+  };
+
+  const handleSearch = (value) => {
+    const newFilters = { ...filters, licensePlate: value };
+    setFilters(newFilters);
+    fetchData({ ...pagination, current: 1 }, newFilters);
+  };
+
+  const columns = [
+    { title: '时间', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
+    { title: '车牌号', dataIndex: 'licensePlate' },
+    { title: '站点ID', dataIndex: 'stationId' },
+    { title: '速度 (km/h)', dataIndex: 'speed', render: v => v || '-' },
+  ];
 
   return (
-    <div className="layout">
-      <div className="header">Traffic Records</div>
-      <div className="card">
-        <div className="controls">
-          <input
-            placeholder="License plate"
-            value={plateFilter}
-            onChange={(e) => setPlateFilter(e.target.value)}
-          />
-          <button onClick={() => fetchPage(1)} disabled={loading}>
-            Search
-          </button>
-          <span style={{ marginLeft: "auto", fontSize: 13 }}>
-            Total: {total} | Page {page} / {totalPages}
-          </span>
-        </div>
-        {error && <div style={{ marginBottom: 8 }}>Error: {error}</div>}
-        {loading ? (
-          <div>Loading...</div>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>License Plate</th>
-                <th>Station</th>
-                <th>Speed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={idx}>
-                  <td>{dayjs(r.timestamp).format("YYYY-MM-DD HH:mm:ss")}</td>
-                  <td>{r.licensePlate}</td>
-                  <td>{r.stationId}</td>
-                  <td>{r.speed}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div className="controls" style={{ justifyContent: "flex-end" }}>
-          <button onClick={() => fetchPage(Math.max(1, page - 1))} disabled={page === 1 || loading}>
-            Prev
-          </button>
-          <button
-            onClick={() => fetchPage(Math.min(totalPages, page + 1))}
-            disabled={page >= totalPages || loading}
-          >
-            Next
-          </button>
-        </div>
-      </div>
+    <div className='panel' style={{ height: '100%' }}>
+      <div className='panel-title'>离线分析 - 车辆通行明细</div>
+      <Space style={{ marginBottom: 16 }}>
+        <Input.Search
+          placeholder='搜索车牌 (如: A12)'
+          onSearch={handleSearch}
+          enterButton
+          style={{ width: 300 }}
+        />
+      </Space>
+      <Table 
+        columns={columns} 
+        dataSource={data} 
+        rowKey={(r, i) => i} 
+        pagination={pagination}
+        loading={loading}
+        onChange={handleTableChange}
+        size='middle'
+      />
     </div>
   );
-}
+};
+
+export default Traffic;

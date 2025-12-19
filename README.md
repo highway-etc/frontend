@@ -9,7 +9,7 @@
 
 ```powershell
 npm install
-npm run dev -- --host --port 5173
+npm run dev -- --host --port 3000
 ```
 
 - Vite 代理 `/api` → `http://localhost:8080`（需本地启动 services 后端或将代理指向容器地址）。

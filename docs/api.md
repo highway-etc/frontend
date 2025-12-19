@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | 交通明细 | GET | `/api/traffic` | `stationId?` `start?` `end?` `licensePlate?` `page=0` `size=20` | `total`，`records[{timestamp, licensePlate, stationId, speed}]` |
 | 窗口统计 | GET | `/api/stats` | `stationId?` `start?` `end?` | `[ {stationId, windowStart, windowEnd, totalCount, uniquePlates, avgSpeed} ]` |
-| 套牌告警 | GET | `/api/alerts` | `plate?` `start?` `end?` | `[ {stationId, licensePlate, timestamp, alertType} ]` |
+| 套牌告警 | GET | `/api/alerts` | `plate?` `stationId?` `start?` `end?` | `[ {stationId, licensePlate, timestamp, alertType} ]` |
 
 > `?` 表示可选参数。
 
@@ -92,6 +92,7 @@
 - 作用：查询套牌告警记录（源表 `alert_plate_clone`）。
 - 参数：
   - `plate`（可选）：模糊匹配 `hphm_mask`。
+  - `stationId`（可选）：按 first_station_id 过滤。
   - `start` / `end`（可选）：`created_at` 时间范围。
 - 行为：按 `created_at` 倒序，最多 200 条。
 - 返回：
@@ -117,7 +118,7 @@
 
 - Dashboard（折线 + 表格）：页面初次加载调用 `/api/stats`，展示 `totalCount/uniquePlates/avgSpeed` 与时间窗口。
 - Traffic（明细列表）：调用 `/api/traffic`，前端页码 1 基，后端 0 基；车牌过滤参数为 `licensePlate`，后端按 `hphm_mask` 模糊匹配。
-- Alerts（告警列表）：调用 `/api/alerts`，UI 有 Station ID 输入，但后端未支持 `stationId` 参数，当前仅 `plate/start/end` 生效。
+- Alerts（告警列表）：调用 `/api/alerts`，现已支持 `stationId` 过滤（first_station_id），同时支持 `plate/start/end`。
 
 ## 7. 常见调用模式（前端示例）
 
@@ -148,7 +149,7 @@ const alerts = await axios.get("/api/alerts", { params: { plate: "A12" } });
 
 - **为什么分页总是停在第 1 页？** 确认请求参数 `page` 是否从 0 开始；UI 展示可用 1 基，发送时减一。
 - **车牌过滤无效？** 请确认使用脱敏后的片段（如 `A12` 或 `浙A12`）；后端按 `hphm_mask` 进行模糊匹配。
-- **告警页 Station 过滤无效？** 后端未支持 `stationId`；如需按站点筛选，请在告警查询 SQL 增加 `first_station_id` 条件。
+- **告警页 Station 过滤无效？** 现已支持 `stationId`（first_station_id）；若仍无结果，请确认数据中有对应站点。
 - **时间格式报错？** 确认使用 ISO8601（不带空格），例如 `2025-12-01T00:00:00`。
 
 ## 9. 变更记录（维护用）

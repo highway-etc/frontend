@@ -1,90 +1,232 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import ReactECharts from "echarts-for-react";
-import dayjs from "dayjs";
-import "../app.css";
+import React, { useEffect, useState } from 'react';
+import ReactECharts from 'echarts-for-react';
+import axios from 'axios';
+import { List, Tag, Spin } from 'antd';
+import { CarOutlined, AlertOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import * as echarts from 'echarts';
 
-const toSeriesData = (records) =>
-  records.map((r) => ({
-    name: r.windowEnd,
-    value: [dayjs(r.windowEnd).valueOf(), r.totalCount],
-  }));
+const Dashboard = () => {
+  const [overview, setOverview] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-export default function Dashboard() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // Hardcoded station coordinates for demo (Guangdong area approx)
+  const stationCoords = {
+    101: [113.264, 23.129], // Guangzhou
+    102: [114.057, 22.543], // Shenzhen
+    103: [116.700, 23.392], // Shantou
+    104: [113.122, 23.021], // Foshan
+    105: [113.751, 23.020], // Dongguan
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      setError("");
+    const fetchData = async () => {
       try {
-        const res = await axios.get("/api/stats");
-        setData(res.data || []);
-      } catch (e) {
-        setError(e?.message || "Failed to load stats");
+        const [overviewRes, alertsRes] = await Promise.all([
+          axios.get('/api/overview?windowMinutes=60'),
+          axios.get('/api/alerts?size=20')
+        ]);
+        setOverview(overviewRes.data);
+        setAlerts(alertsRes.data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
+
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const chartOption = useMemo(
-    () => ({
-      title: { text: "Traffic Volume" },
-      tooltip: { trigger: "axis" },
-      xAxis: { type: "time" },
-      yAxis: { type: "value" },
-      series: [
-        {
-          name: "Total",
-          type: "line",
-          smooth: true,
-          showSymbol: false,
-          data: toSeriesData(data),
-        },
-      ],
-    }),
-    [data]
-  );
+  if (loading && !overview) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Spin size='large' /></div>;
+  }
+
+  // Chart Options
+  const gaugeOption = {
+    series: [{
+      type: 'gauge',
+      startAngle: 180,
+      endAngle: 0,
+      min: 0,
+      max: 10000, // Adjust based on expected traffic
+      splitNumber: 5,
+      itemStyle: { color: '#0ea5e9' },
+      progress: { show: true, width: 18 },
+      pointer: { show: false },
+      axisLine: { lineStyle: { width: 18 } },
+      axisTick: { show: false },
+      splitLine: { length: 12, lineStyle: { width: 2, color: '#999' } },
+      axisLabel: { distance: 20, color: '#999', fontSize: 10 },
+      detail: {
+        valueAnimation: true,
+        offsetCenter: [0, '-20%'],
+        fontSize: 30,
+        fontWeight: 'bolder',
+        formatter: '{value}',
+        color: '#fff'
+      },
+      data: [{ value: overview?.totalTraffic || 0, name: '车辆总数' }],
+      title: { offsetCenter: [0, '20%'], fontSize: 14, color: '#94a3b8' }
+    }]
+  };
+
+  const trendOption = {
+    tooltip: { trigger: 'axis' },
+    grid: { top: 20, right: 20, bottom: 20, left: 40, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: overview?.trafficTrend?.map(t => t.windowStart.substring(11, 16)) || [],
+      axisLine: { lineStyle: { color: '#334155' } },
+      axisLabel: { color: '#94a3b8' }
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: '#94a3b8' }
+    },
+    series: [{
+      data: overview?.trafficTrend?.map(t => t.count) || [],
+      type: 'line',
+      smooth: true,
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(14, 165, 233, 0.5)' },
+          { offset: 1, color: 'rgba(14, 165, 233, 0.0)' }
+        ])
+      },
+      itemStyle: { color: '#0ea5e9' }
+    }]
+  };
+
+  const mapOption = {
+    backgroundColor: 'transparent',
+    geo: {
+      map: 'china', // Note: This requires registering the map, which we skip for now and use coordinate system
+      silent: true,
+      itemStyle: {
+        areaColor: '#1e293b',
+        borderColor: '#334155'
+      }
+    },
+    // Using a simple scatter plot on a cartesian system to simulate a map for now
+    // since we don't have the map JSON loaded.
+    grid: { top: 10, bottom: 10, left: 10, right: 10 },
+    xAxis: { show: false, min: 112, max: 118 }, // Longitude range for Guangdong
+    yAxis: { show: false, min: 21, max: 25 },   // Latitude range for Guangdong
+    series: [
+      {
+        type: 'effectScatter',
+        coordinateSystem: 'cartesian2d',
+        data: overview?.topStations?.map(s => {
+          const coords = stationCoords[s.stationId] || [113.264, 23.129];
+          return [...coords, s.count];
+        }) || [],
+        symbolSize: (val) => Math.min(val[2] / 10 + 10, 30),
+        itemStyle: { color: '#f43f5e', shadowBlur: 10, shadowColor: '#f43f5e' },
+        label: { show: true, formatter: '{@2}', position: 'top', color: '#fff' }
+      }
+    ]
+  };
+
+  const topStationOption = {
+    tooltip: { trigger: 'item' },
+    series: [
+      {
+        name: 'Top Stations',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 5, borderColor: '#151e32', borderWidth: 2 },
+        label: { show: false, position: 'center' },
+        emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#fff' } },
+        labelLine: { show: false },
+        data: overview?.topStations?.map(s => ({ value: s.count, name: `Station ${s.stationId}` })) || []
+      }
+    ]
+  };
 
   return (
-    <div className="layout">
-      <div className="header">Dashboard</div>
-      {error && <div className="card">Error: {error}</div>}
-      {loading && <div className="card">Loading...</div>}
-      <div className="card">
-        <ReactECharts style={{ height: 360 }} option={chartOption} notMerge lazyUpdate />
-      </div>
-      <div className="card">
-        <div className="header" style={{ fontSize: 16 }}>
-          Latest Windows
+    <div className='dashboard-grid'>
+      {/* Left Panel */}
+      <div className='panel'>
+        <div className='panel-title'>数据总览</div>
+        <div style={{ height: '200px' }}>
+          <ReactECharts option={gaugeOption} style={{ height: '100%', width: '100%' }} />
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Window Start</th>
-              <th>Window End</th>
-              <th>Total Count</th>
-              <th>Unique Plates</th>
-              <th>Avg Speed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((r, idx) => (
-              <tr key={idx}>
-                <td>{r.windowStart}</td>
-                <td>{r.windowEnd}</td>
-                <td>{r.totalCount}</td>
-                <td>{r.uniquePlates}</td>
-                <td>{r.avgSpeed}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        
+        <div className='stat-card'>
+          <div>
+            <div className='stat-label'>去重车牌数</div>
+            <div className='stat-value'>{overview?.uniquePlates || 0}</div>
+          </div>
+          <CarOutlined style={{ fontSize: '24px', color: '#38bdf8', opacity: 0.5 }} />
+        </div>
+
+        <div className='stat-card'>
+          <div>
+            <div className='stat-label'>告警总数</div>
+            <div className='stat-value' style={{ color: '#f43f5e' }}>{overview?.alertCount || 0}</div>
+          </div>
+          <AlertOutlined style={{ fontSize: '24px', color: '#f43f5e', opacity: 0.5 }} />
+        </div>
+
+        <div className='panel-title' style={{ marginTop: '20px' }}>出站站点总览</div>
+        <div style={{ flex: 1 }}>
+          <ReactECharts option={topStationOption} style={{ height: '100%', width: '100%' }} />
+        </div>
+      </div>
+
+      {/* Center Panel */}
+      <div className='panel' style={{ padding: 0, background: 'radial-gradient(circle at center, #1e293b 0%, #0b1120 100%)' }}>
+        <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
+          <div className='panel-title'>来深车辆来源</div>
+        </div>
+        <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
+        
+        {/* Bottom Trend Chart in Center */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, #0b1120, transparent)', padding: '20px' }}>
+           <div className='panel-title' style={{ fontSize: '14px' }}>24小时车辆情况</div>
+           <ReactECharts option={trendOption} style={{ height: '100%', width: '100%' }} />
+        </div>
+      </div>
+
+      {/* Right Panel */}
+      <div className='panel'>
+        <div className='panel-title'>
+          <span className='live-indicator'></span>
+          实时告警监控
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <List
+            dataSource={alerts}
+            renderItem={(item) => (
+              <List.Item style={{ padding: '10px 0', borderBottom: '1px solid #1e293b' }}>
+                <List.Item.Meta
+                  avatar={<AlertOutlined style={{ color: '#f43f5e', fontSize: '20px' }} />}
+                  title={<span style={{ color: '#e2e8f0' }}>{item.licensePlate}</span>}
+                  description={<span style={{ color: '#94a3b8', fontSize: '12px' }}>{item.timestamp.replace('T', ' ')}</span>}
+                />
+                <Tag color='error'>{item.alertType || '套牌'}</Tag>
+              </List.Item>
+            )}
+          />
+        </div>
+        
+        <div className='panel-title' style={{ marginTop: '20px' }}>数据统计图</div>
+        <div style={{ height: '200px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '10px' }}>
+           {/* Placeholder for another chart or info */}
+           <div style={{ color: '#94a3b8', fontSize: '12px', lineHeight: '1.5' }}>
+             站点名称: 罗田主线站<br/>
+             流量告警值: 24.00<br/>
+             当前状态: <span style={{ color: '#22c55e' }}>正常</span>
+           </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default Dashboard;
