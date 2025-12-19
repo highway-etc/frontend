@@ -18,9 +18,9 @@ export default function Traffic() {
     try {
       const res = await axios.get("/api/traffic", {
         params: {
-          page: nextPage,
+          page: Math.max(nextPage - 1, 0),
           size: pageSize,
-          licensePlate: plateFilter || undefined,
+          licensePlate: plateFilter.trim() || undefined,
         },
       });
       setRows(res.data?.records || []);
