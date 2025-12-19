@@ -1,0 +1,27 @@
+mysql: mysql+pymysql://root:123456@localhost:8066/highway_etc?charset=utf8mb4
+# classicmodels data_copilot
+
+ai:
+  tries: 3
+  data_rows: 2
+
+llm:
+  model_provider: openai #qwen #openai
+  model: deepseek-chat
+  url: "https://api.deepseek.com"
+
+# qwen1.5-72b-chat   qwen1.5-110b-chat
+# qwen-turbo  qwen-plus   qwen-max   qwen-long
+# https://dashscope.aliyun.com/
+
+# glm-4
+# https://open.bigmodel.cn
+
+# deepseek-chat
+# https://api.deepseek.com/v1/
+
+# deepseek-v3
+# https://dashscope.aliyuncs.com/compatible-mode/v1
+
+server_port: 8080
+
