@@ -73,25 +73,56 @@ const Dashboard = () => {
       startAngle: 180,
       endAngle: 0,
       min: 0,
-      max: 10000, // Adjust based on expected traffic
+      max: 10000,
       splitNumber: 5,
-      itemStyle: { color: '#0ea5e9' },
-      progress: { show: true, width: 18 },
-      pointer: { show: false },
-      axisLine: { lineStyle: { width: 18 } },
-      axisTick: { show: false },
-      splitLine: { length: 12, lineStyle: { width: 2, color: '#999' } },
-      axisLabel: { distance: 20, color: '#999', fontSize: 10 },
+      radius: '100%',
+      center: ['50%', '70%'],
+      axisLine: {
+        lineStyle: {
+          width: 6,
+          color: [
+            [0.3, '#67e0e3'],
+            [0.7, '#37a2da'],
+            [1, '#fd666d']
+          ]
+        }
+      },
+      pointer: {
+        icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+        length: '12%',
+        width: 10,
+        offsetCenter: [0, '-60%'],
+        itemStyle: { color: 'auto' }
+      },
+      axisTick: {
+        length: 12,
+        lineStyle: { color: 'auto', width: 2 },
+        distance: -20
+      },
+      splitLine: {
+        length: 20,
+        lineStyle: { color: 'auto', width: 5 },
+        distance: -20
+      },
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: 12,
+        distance: -45,
+        formatter: function (value) {
+          if (value === 10000) return '10k';
+          if (value === 0) return '0';
+          return value;
+        }
+      },
+      title: { offsetCenter: [0, '-20%'], fontSize: 14, color: '#94a3b8' },
       detail: {
-        valueAnimation: true,
-        offsetCenter: [0, '-20%'],
         fontSize: 30,
-        fontWeight: 'bolder',
+        offsetCenter: [0, '0%'],
+        valueAnimation: true,
         formatter: '{value}',
         color: '#fff'
       },
-      data: [{ value: overview?.totalTraffic || 0, name: '车辆总数' }],
-      title: { offsetCenter: [0, '20%'], fontSize: 14, color: '#94a3b8' }
+      data: [{ value: overview?.totalTraffic || 0, name: '车辆总数' }]
     }]
   };
 
@@ -131,23 +162,33 @@ const Dashboard = () => {
     visualMap: {
       min: 0,
       max: 1000,
-      left: 'left',
-      top: 'bottom',
+      left: '5%',
+      bottom: '5%',
       text: ['高', '低'],
       calculable: true,
-      inRange: { color: ['#1e293b', '#0ea5e9', '#38bdf8'] },
+      inRange: { color: ['#1e293b', '#0ea5e9', '#38bdf8', '#60a5fa'] },
       textStyle: { color: '#94a3b8' }
+    },
+    geo: {
+      map: 'china',
+      roam: true,
+      emphasis: {
+        label: { show: true, color: '#fff' },
+        itemStyle: { areaColor: '#1d4ed8' }
+      },
+      itemStyle: {
+        areaColor: '#0f172a',
+        borderColor: '#334155',
+        borderWidth: 1,
+        shadowColor: 'rgba(0, 0, 0, 0.5)',
+        shadowBlur: 10
+      }
     },
     series: [
       {
         name: '车辆来源',
         type: 'map',
-        map: 'china',
-        roam: true,
-        emphasis: {
-          label: { show: true, color: '#fff' },
-          itemStyle: { areaColor: '#0ea5e9' }
-        },
+        geoIndex: 0,
         data: overview?.byProvince?.map(p => ({
           name: PROVINCE_NAME_MAP[p.province] || p.province,
           value: p.count
@@ -156,18 +197,58 @@ const Dashboard = () => {
     ]
   };
 
+  const typeOption = {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { top: '10%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLabel: { color: '#94a3b8' },
+      splitLine: { lineStyle: { color: '#1e293b' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: overview?.byType?.map(t => t.type) || [],
+      axisLabel: { color: '#94a3b8' }
+    },
+    series: [{
+      name: '车辆类型',
+      type: 'bar',
+      data: overview?.byType?.map(t => t.count) || [],
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: '#38bdf8' },
+          { offset: 1, color: '#818cf8' }
+        ]),
+        borderRadius: [0, 4, 4, 0]
+      }
+    }]
+  };
+
   const topStationOption = {
-    tooltip: { trigger: 'item' },
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     series: [
       {
         name: 'Top Stations',
         type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
+        radius: ['40%', '65%'],
+        avoidLabelOverlap: true,
         itemStyle: { borderRadius: 5, borderColor: '#151e32', borderWidth: 2 },
-        label: { show: false, position: 'center' },
-        emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#fff' } },
-        labelLine: { show: false },
+        label: {
+          show: true,
+          position: 'outside',
+          formatter: '{b}',
+          color: '#94a3b8',
+          fontSize: 12
+        },
+        labelLine: {
+          show: true,
+          length: 15,
+          length2: 10,
+          lineStyle: { color: '#334155' }
+        },
+        emphasis: {
+          label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' }
+        },
         data: overview?.topStations?.map(s => ({ value: s.count, name: getStationName(s.stationId) })) || []
       }
     ]
@@ -220,33 +301,42 @@ const Dashboard = () => {
 
       {/* Right Panel */}
       <div className='panel'>
-        <div className='panel-title'>
+        <div className='panel-title'>车辆类型分布</div>
+        <div style={{ height: '250px' }}>
+          <ReactECharts option={typeOption} style={{ height: '100%', width: '100%' }} />
+        </div>
+
+        <div className='panel-title' style={{ marginTop: '20px' }}>
           <span className='live-indicator'></span>
           实时告警监控
         </div>
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
           <List
             dataSource={alerts}
+            size="small"
             renderItem={(item) => (
-              <List.Item style={{ padding: '10px 0', borderBottom: '1px solid #1e293b' }}>
-                <List.Item.Meta
-                  avatar={<AlertOutlined style={{ color: '#f43f5e', fontSize: '20px' }} />}
-                  title={<span style={{ color: '#e2e8f0' }}>{item.licensePlate}</span>}
-                  description={<span style={{ color: '#94a3b8', fontSize: '12px' }}>{item.timestamp.replace('T', ' ')}</span>}
-                />
-                <Tag color='error'>{item.alertType || '套牌'}</Tag>
+              <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #1e293b' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 'bold' }}>{item.licensePlate}</div>
+                    <div style={{ color: '#64748b', fontSize: '11px' }}>{item.timestamp.substring(11, 19)}</div>
+                  </div>
+                  <Tag color='error' style={{ margin: 0, fontSize: '10px' }}>{item.alertType || '套牌'}</Tag>
+                </div>
               </List.Item>
             )}
           />
         </div>
         
-        <div className='panel-title' style={{ marginTop: '20px' }}>数据统计图</div>
-        <div style={{ height: '200px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '10px' }}>
-           {/* Placeholder for another chart or info */}
-           <div style={{ color: '#94a3b8', fontSize: '12px', lineHeight: '1.5' }}>
-             站点名称: 罗田主线站<br/>
-             流量告警值: 24.00<br/>
-             当前状态: <span style={{ color: '#22c55e' }}>正常</span>
+        <div className='panel-title' style={{ marginTop: '20px' }}>系统状态</div>
+        <div style={{ padding: '15px', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '8px', border: '1px solid #1e293b' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+             <span style={{ color: '#94a3b8', fontSize: '12px' }}>Flink 状态</span>
+             <Tag color="success" style={{ margin: 0 }}>RUNNING</Tag>
+           </div>
+           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+             <span style={{ color: '#94a3b8', fontSize: '12px' }}>数据延迟</span>
+             <span style={{ color: '#38bdf8', fontSize: '12px' }}>24ms</span>
            </div>
         </div>
       </div>

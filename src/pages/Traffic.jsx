@@ -74,9 +74,11 @@ const Traffic = () => {
   };
 
   const columns = [
-    { title: '时间', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
-    { title: '车牌号', dataIndex: 'licensePlate' },
-    { title: '站点ID', dataIndex: 'stationId' },
+    { title: '过车时间', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss'), width: 180 },
+    { title: '车牌号', dataIndex: 'licensePlate', render: (text) => <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>{text}</span>, width: 120 },
+    { title: '行政区划', dataIndex: 'xzqhmc', width: 150 },
+    { title: '站点名称', dataIndex: 'kkmc', ellipsis: true },
+    { title: '站点ID', dataIndex: 'stationId', width: 100 },
   ];
 
   return (
