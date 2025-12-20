@@ -33,8 +33,7 @@ const Alerts = () => {
   ];
 
   return (
-    <div className='panel' style={{ height: '100%' }}>
-      <div className='panel-title'>交互式查询 - 车牌告警记录</div>
+    <div style={{ height: '100%' }}>
       <Space style={{ marginBottom: 16 }}>
         <Input.Search 
           placeholder='按车牌筛选' 

@@ -77,12 +77,10 @@ const Traffic = () => {
     { title: '时间', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
     { title: '车牌号', dataIndex: 'licensePlate' },
     { title: '站点ID', dataIndex: 'stationId' },
-    { title: '速度 (km/h)', dataIndex: 'speed', render: v => v || '-' },
   ];
 
   return (
-    <div className='panel' style={{ height: '100%' }}>
-      <div className='panel-title'>离线分析 - 通行数据明细</div>
+    <div style={{ height: '100%' }}>
       <Space style={{ marginBottom: 16 }}>
         <Input.Search
           placeholder='按车牌筛选 (例: 粤A12345)'

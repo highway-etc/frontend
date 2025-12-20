@@ -2,19 +2,20 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App from './App';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
-import Traffic from './pages/Traffic';
-import Alerts from './pages/Alerts';
+import Query from './pages/Query';
+import Analysis from './pages/Analysis';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <App>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/traffic" element={<Traffic />} />
-          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/query" element={<Query />} />
+          <Route path="/analysis" element={<Analysis />} />
         </Routes>
       </App>
     </BrowserRouter>

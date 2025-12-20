@@ -1,15 +1,16 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { DashboardOutlined, TableOutlined, AlertOutlined, CloudServerOutlined } from '@ant-design/icons';
+import { HomeOutlined, DashboardOutlined, SearchOutlined, BarChartOutlined, CloudServerOutlined } from '@ant-design/icons';
 import './app.css';
 
 const App = ({ children }) => {
   const { pathname } = useLocation();
   
   const navItems = [
+    { path: '/', label: '首页', icon: <HomeOutlined /> },
     { path: '/dashboard', label: '数据大屏', icon: <DashboardOutlined /> },
-    { path: '/traffic', label: '离线分析', icon: <TableOutlined /> },
-    { path: '/alerts', label: '交互式查询', icon: <AlertOutlined /> }
+    { path: '/query', label: '交互式查询', icon: <SearchOutlined /> },
+    { path: '/analysis', label: '离线分析', icon: <BarChartOutlined /> }
   ];
 
   return (
