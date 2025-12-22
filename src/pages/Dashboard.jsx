@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import axios from 'axios';
 import { List, Tag, Spin } from 'antd';
@@ -6,22 +7,66 @@ import { CarOutlined, AlertOutlined, EnvironmentOutlined } from '@ant-design/ico
 import * as echarts from 'echarts';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chinaReady, setChinaReady] = useState(false);
+  const [congestion, setCongestion] = useState([]);
+  const [health, setHealth] = useState([]);
 
   // 站点 ID 到名称的映射 (示例，实际可从后端获取)
   const STATION_MAP = {
-    101: '邳州东站',
-    102: '丰县北站',
-    103: '铜山站',
-    104: '睢宁站',
-    105: '沛县站',
-    // 更多站点...
+    101: '南京江北站',
+    102: '苏州阳澄湖站',
+    103: '无锡惠山站',
+    104: '北京大兴机场站',
+    105: '上海浦东川沙站',
+    106: '广州花都站',
+    107: '深圳南山站',
+    108: '重庆绕城北站',
+    109: '成都绕城东站',
+    110: '济南东站',
+    111: '郑州航空港站',
+    112: '武汉北三环站',
+    113: '西安绕城南站',
+    114: '合肥肥东站',
+    115: '福州南通道站',
+    116: '杭州临安站',
+    117: '乌鲁木齐绕城站',
+    118: '拉萨柳梧站',
   };
 
-  const getStationName = (id) => STATION_MAP[id] || `站点 ${id}`;
+  const getStationName = (id, nameFromApi) => nameFromApi || STATION_MAP[id] || `站点 ${id}`;
+
+  const HPZL_NAME_MAP = {
+    '01': '大型汽车',
+    '02': '小型汽车',
+    '03': '使馆汽车',
+    '04': '领馆汽车',
+    '05': '境外汽车',
+    '06': '外籍汽车',
+    '07': '普通摩托车',
+    '08': '轻便摩托车',
+    '16': '教练汽车',
+    '20': '公交客车',
+    '21': '出租客运',
+    '22': '旅游客车',
+    '23': '警用车辆',
+    '24': '消防车辆',
+    '25': '救护车辆',
+    '26': '工程救险',
+    '31': '武警车辆',
+    '32': '军队车辆',
+    '51': '大功率摩托',
+    '52': '新能源小型',
+    '53': '新能源大型',
+    '54': '新能源货车',
+    '1': '小型汽车',
+    '2': '大型汽车',
+    '13': '农用运输车',
+    '-': '未知车型'
+  };
 
   const PROVINCE_NAME_MAP = {
     '京': '北京市', '津': '天津市', '冀': '河北省', '晋': '山西省', '蒙': '内蒙古自治区',
@@ -44,12 +89,16 @@ const Dashboard = () => {
 
     const fetchData = async () => {
       try {
-        const [overviewRes, alertsRes] = await Promise.all([
+        const [overviewRes, alertsRes, congestionRes, healthRes] = await Promise.all([
           axios.get('/api/overview?windowMinutes=60'),
-          axios.get('/api/alerts?size=20')
+          axios.get('/api/alerts?size=20'),
+          axios.get('/api/congestion?windowMinutes=60'),
+          axios.get('/api/device-health')
         ]);
         setOverview(overviewRes.data);
         setAlerts(alertsRes.data);
+        setCongestion(congestionRes.data || []);
+        setHealth(healthRes.data || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data', error);
       } finally {
@@ -66,6 +115,23 @@ const Dashboard = () => {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Spin size='large' /></div>;
   }
 
+  const liveTotal = (() => {
+    const trend = overview?.trafficTrend || [];
+    if (trend.length === 0) return overview?.totalTraffic || 0;
+    // 最近 6 个时间片累积，体现流动性
+    return trend.slice(-6).reduce((sum, t) => sum + (t.count || 0), 0);
+  })();
+  const gaugeMax = Math.max(2000, Math.min(10000, Math.ceil(liveTotal * 1.6)));
+
+  const avgCongestion = (() => {
+    if (!congestion || congestion.length === 0) return { avg: 0, focus: null };
+    const avg = congestion.reduce((s, c) => s + (c.congestionIndex || 0), 0) / congestion.length;
+    const focus = congestion[0];
+    return { avg: Number(avg.toFixed(2)), focus };
+  })();
+
+  const healthTop = health && health.length > 0 ? health[0] : null;
+
   // Chart Options
   const gaugeOption = {
     series: [{
@@ -73,7 +139,7 @@ const Dashboard = () => {
       startAngle: 180,
       endAngle: 0,
       min: 0,
-      max: 10000,
+      max: gaugeMax,
       splitNumber: 5,
       radius: '100%',
       center: ['50%', '70%'],
@@ -122,7 +188,7 @@ const Dashboard = () => {
         formatter: '{value}',
         color: '#fff'
       },
-      data: [{ value: overview?.totalTraffic || 0, name: '车辆总数' }]
+      data: [{ value: liveTotal, name: '车辆总数' }]
     }]
   };
 
@@ -207,7 +273,7 @@ const Dashboard = () => {
     },
     yAxis: {
       type: 'category',
-      data: overview?.byType?.map(t => t.type) || [],
+      data: overview?.byType?.map(t => HPZL_NAME_MAP[t.type] || t.type) || [],
       axisLabel: { color: '#94a3b8' }
     },
     series: [{
@@ -230,26 +296,29 @@ const Dashboard = () => {
       {
         name: 'Top Stations',
         type: 'pie',
-        radius: ['40%', '65%'],
+        radius: ['36%', '60%'],
         avoidLabelOverlap: true,
         itemStyle: { borderRadius: 5, borderColor: '#151e32', borderWidth: 2 },
         label: {
           show: true,
           position: 'outside',
           formatter: '{b}',
-          color: '#94a3b8',
-          fontSize: 12
+          color: '#cbd5e1',
+          fontSize: 12,
+          fontWeight: 600,
+          overflow: 'break'
         },
         labelLine: {
           show: true,
-          length: 15,
+          length: 14,
           length2: 10,
           lineStyle: { color: '#334155' }
         },
+        minShowLabelAngle: 2,
         emphasis: {
-          label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' }
+          label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#fff' }
         },
-        data: overview?.topStations?.map(s => ({ value: s.count, name: getStationName(s.stationId) })) || []
+        data: overview?.topStations?.map(s => ({ value: s.count, name: getStationName(s.stationId, s.stationName) })) || []
       }
     ]
   };
@@ -265,13 +334,13 @@ const Dashboard = () => {
         
         <div className='stat-card'>
           <div>
-            <div className='stat-label'>去重车牌数</div>
-            <div className='stat-value'>{overview?.uniquePlates || 0}</div>
+            <div className='stat-label'>总车流量</div>
+            <div className='stat-value'>{overview?.totalTraffic || 0}</div>
           </div>
           <CarOutlined style={{ fontSize: '24px', color: '#38bdf8', opacity: 0.5 }} />
         </div>
 
-        <div className='stat-card'>
+        <div className='stat-card' onClick={() => navigate('/query?tab=2')} style={{ cursor: 'pointer' }}>
           <div>
             <div className='stat-label'>告警总数</div>
             <div className='stat-value' style={{ color: '#f43f5e' }}>{overview?.alertCount || 0}</div>
@@ -279,8 +348,36 @@ const Dashboard = () => {
           <AlertOutlined style={{ fontSize: '24px', color: '#f43f5e', opacity: 0.5 }} />
         </div>
 
-        <div className='panel-title' style={{ marginTop: '20px' }}>出站站点总览</div>
-        <div style={{ flex: 1 }}>
+          <div className='panel-title' style={{ marginTop: '20px' }}>实时拥堵指数</div>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+            <div style={{ flex: 1, background: 'rgba(15, 23, 42, 0.4)', padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid #1e293b' }}>
+              <div style={{ color: '#94a3b8', fontSize: '12px' }}>全网平均</div>
+              <div style={{ color: avgCongestion.avg > 3 ? '#f87171' : '#34d399', fontSize: '20px', fontWeight: 'bold' }}>{avgCongestion.avg}</div>
+              <div style={{ color: '#cbd5e1', fontSize: '11px' }}>{avgCongestion.avg <= 1.5 ? '畅通' : avgCongestion.avg <= 2.5 ? '缓行' : avgCongestion.avg <= 3.5 ? '拥堵' : '严重'}</div>
+            </div>
+            <div style={{ flex: 1, background: 'rgba(15, 23, 42, 0.4)', padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid #1e293b' }}>
+              <div style={{ color: '#94a3b8', fontSize: '12px' }}>热点路段</div>
+              <div style={{ color: '#fbbf24', fontSize: '18px', fontWeight: 'bold' }}>{avgCongestion.focus?.stationName || '—'}</div>
+              <div style={{ color: '#cbd5e1', fontSize: '11px' }}>CCI {avgCongestion.focus?.congestionIndex || 0} / {avgCongestion.focus?.level || 'N/A'}</div>
+            </div>
+          </div>
+
+          <div className='panel-title' style={{ marginTop: '0px' }}>设备健康度</div>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ flex: 1, background: 'rgba(15, 23, 42, 0.4)', padding: '10px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+              <div style={{ color: '#94a3b8', fontSize: '12px' }}>最高可用</div>
+              <div style={{ color: '#34d399', fontSize: '20px', fontWeight: 'bold' }}>{healthTop?.uptimePct ?? '--'}%</div>
+              <div style={{ color: '#cbd5e1', fontSize: '11px' }}>{healthTop?.stationName || '—'}</div>
+            </div>
+            <div style={{ flex: 1, background: 'rgba(15, 23, 42, 0.4)', padding: '10px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+              <div style={{ color: '#94a3b8', fontSize: '12px' }}>告警率</div>
+              <div style={{ color: '#f87171', fontSize: '20px', fontWeight: 'bold' }}>{healthTop?.errorRate ?? '--'}%</div>
+              <div style={{ color: '#cbd5e1', fontSize: '11px' }}>{healthTop?.status || '—'}</div>
+            </div>
+          </div>
+
+        <div className='panel-title' style={{ marginTop: '0px' }}>出站站点总览</div>
+        <div style={{ flex: 1, minHeight: 260 }}>
           <ReactECharts option={topStationOption} style={{ height: '100%', width: '100%' }} />
         </div>
       </div>
@@ -288,7 +385,7 @@ const Dashboard = () => {
       {/* Center Panel */}
       <div className='panel' style={{ padding: 0, background: 'radial-gradient(circle at center, #1e293b 0%, #0b1120 100%)' }}>
         <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
-          <div className='panel-title'>来深车辆来源</div>
+          <div className='panel-title'>来苏车辆来源</div>
         </div>
         <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
         
@@ -321,7 +418,9 @@ const Dashboard = () => {
                     <div style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 'bold' }}>{item.licensePlate}</div>
                     <div style={{ color: '#64748b', fontSize: '11px' }}>{item.timestamp.substring(11, 19)}</div>
                   </div>
-                  <Tag color='error' style={{ margin: 0, fontSize: '10px' }}>{item.alertType || '套牌'}</Tag>
+                  <Tag color='error' style={{ margin: 0, fontSize: '10px' }}>
+                    {item.alertType === 'Plate Clone' ? '套牌车' : (item.alertType || '套牌')}
+                  </Tag>
                 </div>
               </List.Item>
             )}
@@ -329,7 +428,7 @@ const Dashboard = () => {
         </div>
         
         <div className='panel-title' style={{ marginTop: '20px' }}>系统状态</div>
-        <div style={{ padding: '15px', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '8px', border: '1px solid #1e293b' }}>
+        <div style={{ padding: '15px', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '8px', border: '1px solid #1e293b', marginBottom: '20px' }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
              <span style={{ color: '#94a3b8', fontSize: '12px' }}>Flink 状态</span>
              <Tag color="success" style={{ margin: 0 }}>RUNNING</Tag>
@@ -337,6 +436,25 @@ const Dashboard = () => {
            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
              <span style={{ color: '#94a3b8', fontSize: '12px' }}>数据延迟</span>
              <span style={{ color: '#38bdf8', fontSize: '12px' }}>24ms</span>
+           </div>
+        </div>
+
+        <div className='panel-title'>设备健康度 (模拟)</div>
+        <div style={{ marginBottom: '20px' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+             <span style={{ color: '#cbd5e1', fontSize: '12px' }}>RSU 在线率</span>
+             <span style={{ color: '#38bdf8', fontSize: '12px' }}>99.8%</span>
+           </div>
+           <div style={{ height: '6px', background: '#1e293b', borderRadius: '3px', overflow: 'hidden' }}>
+             <div style={{ width: '99.8%', height: '100%', background: '#38bdf8' }}></div>
+           </div>
+           
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', marginTop: '10px' }}>
+             <span style={{ color: '#cbd5e1', fontSize: '12px' }}>门架完好率</span>
+             <span style={{ color: '#38bdf8', fontSize: '12px' }}>98.5%</span>
+           </div>
+           <div style={{ height: '6px', background: '#1e293b', borderRadius: '3px', overflow: 'hidden' }}>
+             <div style={{ width: '98.5%', height: '100%', background: '#818cf8' }}></div>
            </div>
         </div>
       </div>

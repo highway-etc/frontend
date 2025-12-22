@@ -47,13 +47,23 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
+  justify-content: center;
+  padding: 0 28px;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
+}
+
+.header-left, .header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.header-right {
+  justify-content: flex-end;
 }
 
 .logo {
@@ -77,9 +87,14 @@ body {
   display: flex;
   gap: 8px;
   background: rgba(30, 41, 59, 0.4);
-  padding: 4px;
+  padding: 4px 8px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  flex: 0 0 auto;
+}
+
+.nav-centered {
+  justify-content: center;
 }
 
 .nav-item {
@@ -94,6 +109,16 @@ body {
   align-items: center;
   gap: 8px;
   position: relative;
+}
+
+.date-chip {
+  color: #94a3b8;
+  font-size: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(148, 163, 184, 0.1);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .nav-item:hover {
@@ -163,6 +188,13 @@ body {
 }
 .ant-empty-description {
   color: rgba(148, 163, 184, 0.5) !important;
+}
+
+.search-accent input::placeholder,
+.search-accent .ant-input::placeholder,
+.search-accent .ant-select-selection-placeholder {
+  color: #a5b4fc !important;
+  opacity: 0.9;
 }
 
 .ant-pagination-item a {
@@ -441,4 +473,147 @@ body {
   text-align: center;
 }
 
+/* System Overview Page */
+.system-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
+.section-card {
+  background: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.06), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.section-icon {
+  color: #38bdf8;
+  font-size: 22px;
+}
+
+.section-eyebrow {
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.section-subtitle {
+  margin-top: 10px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.pill-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #e0f2fe;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.pill.ghost {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.system-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.system-grid.three-col {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.system-tile {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  height: 100%;
+}
+
+.tile-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+}
+
+.bullet-list, .system-tile ul {
+  padding-left: 18px;
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.bullet-list li, .system-tile ul li {
+  margin-bottom: 6px;
+}
+
+.diagram-block {
+  margin: 12px 0 8px;
+  padding: 16px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+
+
+/* Dark Dropdown */
+.dark-dropdown {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+}
+.dark-dropdown .ant-select-item {
+  color: #e2e8f0 !important;
+}
+.dark-dropdown .ant-select-item-option-selected {
+  background-color: #0ea5e9 !important;
+  color: #fff !important;
+}
+.dark-dropdown .ant-select-item-option-active {
+  background-color: #334155 !important;
+}

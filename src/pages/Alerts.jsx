@@ -29,7 +29,11 @@ const Alerts = () => {
     { title: '告警时间', dataIndex: 'timestamp', render: t => dayjs(t).format('YYYY-MM-DD HH:mm:ss') },
     { title: '车牌号', dataIndex: 'licensePlate' },
     { title: '站点ID', dataIndex: 'stationId' },
-    { title: '告警类型', dataIndex: 'alertType', render: t => <Tag color='error'>{t}</Tag> },
+    { 
+      title: '告警类型', 
+      dataIndex: 'alertType', 
+      render: t => <Tag color='error'>{t === 'Plate Clone' ? '套牌车' : t}</Tag> 
+    },
   ];
 
   return (
